@@ -1,0 +1,1 @@
+Business analytics project using R. Merged datasets with join functions and visualized sales/product type distributions with ggplot2. Included turnover analysis and consumer purchasing trends across U.S. cities.
