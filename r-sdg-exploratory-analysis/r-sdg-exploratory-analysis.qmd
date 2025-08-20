@@ -1,0 +1,509 @@
+---
+title: "ETW2001 Assignment 3 - Group 61"
+author: "Group 61"
+format: 
+  html:
+    toc: True
+editor: visual
+execute:
+  message: False
+  warning: False
+---
+
+# Addressing Global Health Inequities: The Role of Lifestyle, Economic Factors, and Poverty in Achieving SDG 3
+
+GROUP MEMBERS:
+
+Kockhiew Hui Min 34456597
+
+Nashmia Shakeel 34091904
+
+Varun Agrawal 33518580
+
+Stasya Gracella Liu 33755604
+
+Sunaina Rayaprol 33944091
+
+# INTRODUCTION
+
+"Good Health and Well-Being," the third Sustainable Development Goal (SDG), highlights the importance of ensuring healthy lifestyles and promoting well-being for all. Reaching this objective involves resolving a number of health-related issues, such as poverty, economic considerations, and lifestyle decisions. In both developed and developing countries, encouraging physical activity and healthy lifestyles is essential to lowering the mortality rates associated with obesity. The influence of financial considerations on vaccination coverage highlights the critical role that money plays in enhancing life expectancy and public health outcomes. Lastly, the need for policies that guarantee fair access to healthcare in order to extend life expectancy is highlighted by the enormous impact that poverty and food insecurity have on health outcomes in developing nations. These elements support the overarching goal of SDG 3, which is to guarantee healthy lives for everyone.
+
+Our first problem, the Importance of exercise for promoting a healthier lifestyle, focuses on Target 3.4 which is to Reduce Mortality From Non-Communicable Diseases and Promote Mental Health. This goal aims to reduce premature deaths from non-communicable diseases by one third and also states that the mental health and well-being of individuals should be prioritized. This can be prevented by adopting a healthier lifestyle. Non-communicable diseases, in this case heart disease, diabetes and stroke, are often linked to obesity. To analyse this we used the BMI count as an indicator of a healthy lifestyle to track obesity, we think that countries having a lower overall BMI will have a lower mortality rate.
+
+The second problem, Impact of Economic Factors on Immunization Coverage and Public Health focuses on target 3.8 which aims for equitable access to essential healthcare services and financial protection for all.  We think the difference in s country’s GDP underscores the challenge for developing nations to meet SDG 3.8, as limited financial resources can hinder healthcare accessibility. Achieving universal health coverage can significantly improve health outcomes by preventing diseases, providing timely health interventions and reducing out-of-pocket health costs, especially in developing countries. It also contributes to general social well-being, economic stability and poverty reduction which helps us achieve SDG target 3.3. SDG target 3.3 suggests that end of epidemics and communicable diseases is of utmost importance to achieve SDG 3. 
+
+Lastly, Investigating the Impact of Poverty and Food Insecurity on Health Outcomes in Developing Countries focuses on target 3.2, ending preventable deaths of newborns and children under 5 years of age, which ties into the broader implications of poverty and food insecurity on mortality and life expectancy in developing nations. We think that there is a positive correlation between higher MPI values (high poverty levels) and increased thinness in children and infants. 
+
+# INITIAL EXPLORATORY DATA ANALYSIS
+
+Load necessary libraries
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(readr)
+options(tibble.width = Inf)
+```
+
+Load the data sets:
+
+```{r}
+life = read.csv("Life Expectancy Data.csv") # reading the life expectancy data
+head(life)
+str(life)
+
+poverty <- read.csv("MPI_national.csv")  # reading the MPI national data
+head(poverty)
+str(poverty)
+```
+
+```{r}
+print("The number of rows in life dataset before cleaning are")
+nrow(life)
+print("The number of columns in life dataset before cleaning are")
+ncol(life)
+```
+
+```{r}
+print("The number of rows in poverty dataset before cleaning are")
+nrow(poverty)
+print("The number of columns in poverty dataset before cleaning are")
+ncol(poverty)
+```
+
+First, check for missing values
+
+```{r}
+colSums(is.na(poverty)) # checking if poverty dataset has any missing values
+```
+
+```{r}
+colSums(is.na(life)) # checking if life dataset has any missing values
+```
+
+As shown above, the `poverty` data set doesn't have missing values and can be directly used in our analysis. However, the `life` data set has missing values which we will address in the next section.
+
+# DATA CLEANING
+
+## Handling missing values
+
+```{r}
+missing_values <- c('Life.expectancy', 'Adult.Mortality', 'Alcohol', 
+                                 'Hepatitis.B', 'BMI', 'Polio', 'Total.expenditure',
+                                 'Diphtheria', 'GDP', 'Population', 'thinness..1.19.years', 'thinness.5.9.years', 
+                                 'Income.composition.of.resources', 'Schooling')
+
+# creating histograms to check the skewness data values across different columns
+histograms <- pivot_longer(life[, missing_values], 
+                          cols = everything(), 
+                          names_to = "Variable", values_to = "Value")
+
+ggplot(histograms, aes(x = Value)) +
+  geom_histogram(bins = 30, fill = "green", color = "black") +
+  facet_wrap(~ Variable, scales = "free") +
+  theme_minimal() +
+  labs(title = "Histograms for Different Columns", x = "Value", y = "Frequency") 
+```
+
+Since majority of the histograms for the variables are skewed, we will impute the missing values with the median because the median is a better measure for central tendency.
+
+```{r}
+all_columns <- c('Population', 'GDP', 'Diphtheria', 'thinness..1.19.years', 
+                       'thinness.5.9.years', 'Income.composition.of.resources', 
+                       'Total.expenditure', 'Polio', 'BMI', 'Hepatitis.B', 
+                       'Alcohol', 'Adult.Mortality', 'Life.expectancy', 'Schooling')
+
+
+for (i in all_columns) {
+  imedian <- median(life[[i]], na.rm = TRUE)  # Calculate the median of the column ignoring missing NA values
+  life[[i]][is.na(life[[i]])] <- imedian # Replace NA values in the column with the calculated median
+}
+```
+
+```{r}
+colSums(is.na(life)) # checking if there are any missing values now
+```
+
+```{r}
+print("The number of rows in life dataset after cleaning are")
+nrow(life)
+print("The number of columns in life dataset after cleaning are")
+ncol(life)
+```
+
+Thus, we have completed handling the missing values in the `life` data set.
+
+Moving on, we will be removing redundant values:
+
+```{r}
+life <- unique(life) # removing any duplicate rows so that only unique rows remain 
+```
+
+```{r}
+print("The number of rows in dataset after removing redundant rows if any are")
+nrow(life)
+print("The number of columns in dataset after removing redundant rows if any are")
+ncol(life)
+```
+
+```{r}
+poverty <- unique(poverty)  # removing any duplicate rows so that only unique rows remain 
+```
+
+```{r}
+print("The number of rows in poverty dataset after removing redundant rows if any are")
+nrow(poverty)
+print("The number of columns in poverty dataset after removing redundant rows if any are")
+ncol(poverty)
+```
+
+## Removing outliers
+
+Looking at the `life` data set first.
+
+The below box plots show the data before removing outliers.
+
+```{r}
+all_columns <- c('Population', 'GDP', 'Diphtheria', 'thinness..1.19.years', 
+                       'thinness.5.9.years', 'Income.composition.of.resources', 
+                       'Total.expenditure', 'Polio', 'BMI', 'Hepatitis.B', 
+                       'Alcohol', 'Adult.Mortality', 'Life.expectancy', 'Schooling')
+#creating boxplot for each column to identify outliers 
+
+boxplot_life <- pivot_longer(life[, all_columns], 
+                          cols = everything(), 
+                          names_to = "Variable", values_to = "Value")
+
+
+ggplot(boxplot_life, aes(x = Value)) +
+  geom_boxplot(outlier.colour = "black") +
+  facet_wrap(~ Variable, scales = "free_x") + 
+  theme_minimal() +
+  labs(title = "Boxplots for Different Columns", 
+       x = "Value", y = "Variable")
+
+```
+
+```{r}
+all_columns <- c('Population', 'GDP', 'Diphtheria', 'thinness..1.19.years', 
+                       'thinness.5.9.years', 'Income.composition.of.resources', 
+                       'Total.expenditure', 'Polio', 'BMI', 'Hepatitis.B', 
+                       'Alcohol', 'Adult.Mortality', 'Life.expectancy', 'Schooling')
+for (i in all_columns) {
+  
+  IQR_value <- IQR(life[[i]], na.rm = TRUE) # Calculate the Interquartile Range (IQR) of the column, ignoring NA values
+  lower_bound <- quantile(life[[i]], 0.25, na.rm = TRUE) - 1.5 * IQR_value # lower bound of the IQR 
+  upper_bound <- quantile(life[[i]], 0.75, na.rm = TRUE) + 1.5 * IQR_value # uppeer bound of the IQR
+  life <- life[life[[i]] >= lower_bound & life[[i]] <= upper_bound, ] # Filter out rows where the column value is outside the bounds
+  
+}
+
+```
+
+```{r}
+print("The number of rows in life dataset after removing outliers if any are")
+nrow(life)
+print("The number of columns in life dataset after removing outliers if any are")
+ncol(life)
+```
+
+Now we see that the box plots for the data don't have any outliers.
+
+```{r}
+all_columns <- c('Population', 'GDP', 'Diphtheria', 'thinness..1.19.years', 
+                       'thinness.5.9.years', 'Income.composition.of.resources', 
+                       'Total.expenditure', 'Polio', 'BMI', 'Hepatitis.B', 
+                       'Alcohol', 'Adult.Mortality', 'Life.expectancy', 'Schooling')
+ #creating boxplot for each column to see if most of the outliers are removed or not 
+boxplot_life <- pivot_longer(life[, all_columns], 
+                          cols = everything(), 
+                          names_to = "Variable", values_to = "Value")
+
+
+ggplot(boxplot_life, aes(x = Value)) +
+  geom_boxplot(outlier.colour = "black") +
+  facet_wrap(~ Variable, scales = "free_x") + 
+  theme_minimal() +
+  labs(title = "Boxplots for Different Columns", 
+       x = "Value", y = "Variable")
+
+ 
+```
+
+We repeat the same process for the `poverty` data set:
+
+```{r}
+all_columns <- c('Headcount.Ratio.Urban', 'Headcount.Ratio.Rural', 
+                 'Intensity.of.Deprivation.Urban', 'Intensity.of.Deprivation.Rural', 
+                 'MPI.Urban', 'MPI.Rural')
+ #creating boxplot for each column to see if most of the outliers are removed or not 
+boxplot_poverty <- pivot_longer(poverty[, all_columns], 
+                          cols = everything(), 
+                          names_to = "Variable", values_to = "Value")
+
+
+ggplot(boxplot_poverty, aes(x = Value)) +
+  geom_boxplot(outlier.colour = "black") +
+  facet_wrap(~ Variable, scales = "free_x") + 
+  theme_minimal() +
+  labs(title = "Boxplots for Different Columns", 
+       x = "Value", y = "Variable")
+```
+
+```{r}
+all_columns <- c('Headcount.Ratio.Urban', 'Headcount.Ratio.Rural', 
+                 'Intensity.of.Deprivation.Urban', 'Intensity.of.Deprivation.Rural', 
+                 'MPI.Urban', 'MPI.Rural')
+for (i in all_columns) {
+  
+  IQR_value <- IQR(poverty[[i]], na.rm = TRUE) # Calculate the Interquartile Range (IQR) of the column, ignoring NA
+  lower_bound <- quantile(poverty[[i]], 0.25, na.rm = TRUE) - 1.5 * IQR_value # lower bound of the IQR
+  upper_bound <- quantile(poverty[[i]], 0.75, na.rm = TRUE) + 1.5 * IQR_value # upper bound of the IQR
+  poverty <- poverty[poverty[[i]] >= lower_bound & poverty[[i]] <= upper_bound, ] # Filter out rows where the column value is outside the bounds
+  
+}
+```
+
+```{r}
+all_columns <- c('Headcount.Ratio.Urban', 'Headcount.Ratio.Rural', 
+                 'Intensity.of.Deprivation.Urban', 'Intensity.of.Deprivation.Rural', 
+                 'MPI.Urban', 'MPI.Rural')
+ #creating boxplot for each column to see if most of the outliers are removed or not 
+boxplot_poverty <- pivot_longer(poverty[, all_columns], 
+                          cols = everything(), 
+                          names_to = "Variable", values_to = "Value")
+
+
+ggplot(boxplot_poverty, aes(x = Value)) +
+  geom_boxplot(outlier.colour = "black") +
+  facet_wrap(~ Variable, scales = "free_x") + 
+  theme_minimal() +
+  labs(title = "Boxplots for Different Columns", 
+       x = "Value", y = "Variable")
+```
+
+```{r}
+print("The number of rows in poverty dataset after removing outliers if any are")
+nrow(poverty)
+print("The number of columns in poverty dataset after removing outliers if any are")
+ncol(poverty)
+```
+
+## Descriptive Statistics of both the Data-sets:
+
+```{r}
+summary(poverty) # summary statistics of poverty dataset after cleaning the dataset 
+```
+
+```{r}
+summary(life) # summary statistics of life dataset after cleaning the dataset 
+```
+
+# DATA VISUALISATION
+
+## PROBLEM STATEMENT 1:
+
+### Importance of exercise/ promoting healthier lifestyles
+
+```{r}
+BMI_index <- life %>%
+  mutate(BMI_Category = case_when(
+    BMI < 18.5 ~ "Underweight",
+    BMI >= 18.5 & BMI < 24.9 ~ "Healthy weight",
+    BMI >= 25 & BMI < 29.9 ~ "Overweight",
+    BMI >= 30 ~ "Obese"
+  ))
+ggplot(BMI_index, aes(x = BMI, y = Adult.Mortality, color = BMI_Category)) +
+  geom_point(size = 2, alpha = 0.7) +  # Scatter points
+  labs(title = "Scatter Plot of Adult Mortality by BMI Category", 
+       x = "Body Mass Index (BMI)", 
+       y = "Adult Mortality (per 1000 live births)", 
+       color = "BMI Category") +
+  theme_minimal() +
+  scale_color_manual(values = c("Underweight" = "blue", 
+                                  "Healthy weight" = "green", 
+                                  "Overweight" = "orange", 
+                                  "Obese" = "red"))
+```
+
+The graph above shows a visual representation of a scatter-plot focusing on relationship Body Mass Index (BMI) and Adult Mortality rates. It can be concluded that a large proportion of adult mortality is composed of obese individuals, seen from the BMI category in red. This is a larger proportion compared to the other BMI categories, including that of the classifications of underweight, healthy weight, and overweight combined.
+
+There is seen a positive relationship between BMI and these premature adult deaths. As the BMI increases, the amount of adult mortality (per 1000 live births) would also increase, as seen by the relationship. This high clustered amount for the obese category, additionally shows that there is a strong correlation towards the positive relationship. With high obesity rates, this shows that these individuals are more affected by non-communicable diseases caused by obesity, which contributes to this large number of adult mortality rates.
+
+This problem statement would involve the utmost importance of exercising and the maintenance of physical health, through promoting healthier lifestyles in individuals. This would, overall, be aligned with the Sustainable Development Goal (SDG) 3.4, which aims to reduce mortality rates caused by non-communicable diseases.
+
+The analysis aims to investigate the factors contributing towards highlighting the issue of non-communicable diseases caused by obesity, influencing the mortality rates within different countries. Furthermore, another aim is to raise awareness of the significance of physical activities and healthy lifestyles, and to take action by implementing these within daily lives, aligning with the expected global goals.
+
+In this case, obesity leads to major non-communicable diseases, such as diabetes and heart diseases, which highly contribute towards adult premature deaths across the country. Obesity, the status column within the data-set, is measured by the Body Mass Index (BMI), which provides a range and classification towards body fat, as a major indicator for health. This serves as an indication for underweight, healthy, and overweight individuals as classifications.
+
+High obesity rates can be explained through factors such as increased inactive and sedentary lifestyles within modern societies, lack of exercise, and the preferences of unhealthy food options. This, overall, increases the numbers of NCDs caused by obesity, leading to these premature deaths worldwide.
+
+This issue needs to be overcome by raising awareness of the importance of physical activities and the prevention of NCDs, through the promotion of healthier lifestyle and choices, and the prioritization of mental and physical well-being, which can decrease the number of health risks associated with obesity worldwide. Thus, the SDG Goal 3.4, can be achieved through this way.
+
+## PROBLEM STATEMENT 2:
+
+### Impact of Economic Factors on Immunization Coverage and Public Health
+
+```{r}
+df_mortality <- life %>% 
+  select(Year, Adult.Mortality, Hepatitis.B, Polio, Diphtheria) %>%
+  pivot_longer(cols = c(Hepatitis.B, Polio, Diphtheria), 
+               names_to = "Diseases", 
+               values_to = "ImmunizationCoverage")
+
+df_mortality_summary <- df_mortality %>%
+  group_by(Diseases, ImmunizationCoverage) %>%
+  summarise(AverageAdultMortality = mean(Adult.Mortality, na.rm = TRUE), .groups = 'drop') %>%
+  arrange(Diseases, ImmunizationCoverage)
+
+ggplot(df_mortality_summary, aes(x = ImmunizationCoverage, y = AverageAdultMortality, color = Diseases, group = Diseases)) +
+  geom_line(size = 0.5) + 
+  geom_point(size = 1, alpha = 0.6) +
+  labs(title = "Average Adult Mortality vs Immunization Coverage",
+       x = "Immunization Coverage (%)",
+       y = "Average Adult Mortality Rate",
+       color = "Diseases") +
+  theme_minimal() +
+  scale_color_manual(values = c("Hepatitis.B" = "blue", 
+                                  "Polio" = "orange", 
+                                  "Diphtheria" = "red")) +
+  theme(legend.position = "bottom")
+```
+
+There is an inverse relationship between adult mortality and immunization coverage. As immunization coverage increases, the average adult mortality rate tends to decrease across all diseases. There are some spikes and fluctuations, particularly between 60% and 80% coverage. This could indicate variability in the data due to factors like regional health crises, socio-economic conditions, or vaccine-specific challenges. Once coverage reaches around 90%, the mortality rates seem to stabilize and converge around the lower mortality range, reinforcing the idea that higher immunization rates are associated with lower mortality.
+
+```{r}
+df_gdp_immunization <- life %>%
+  select(Year, GDP, Hepatitis.B, Polio, Diphtheria) %>%
+  pivot_longer(cols = c(Hepatitis.B, Polio, Diphtheria), 
+               names_to = "Diseases", 
+               values_to = "ImmunizationCoverage")
+
+df_gdp_summary <- df_gdp_immunization %>%
+  group_by(Diseases, ImmunizationCoverage) %>%
+  summarise(AverageGDP = mean(GDP), .groups = 'drop') %>%
+  arrange(Diseases, ImmunizationCoverage)
+
+ggplot(df_gdp_summary, aes(x = AverageGDP, y = ImmunizationCoverage, color = Diseases, group = Diseases)) +
+  geom_smooth(method = "loess", size = 1, se = FALSE) +
+  geom_point(size = 1, alpha = 0.6) + 
+  labs(title = "Average GDP vs Immunization Coverage",
+       x = "Average GDP (USD)",
+       y = "Immunization Coverage (%)",
+       color = "Diseases") +
+  theme_minimal() +
+  scale_color_manual(values = c("Hepatitis.B" = "blue", 
+                                "Polio" = "orange", 
+                                "Diphtheria" = "red")) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5, size = 16),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+There is a positive correlation between the immunization coverage and average GDP, suggesting that better economic outcomes in a country could improve health outcomes through vaccinations. Higher GDP levels seem to support broader vaccine coverage, likely due to better healthcare infrastructure and funding. However, there are some variations observed, indicating that while GDP and immunization coverage are generally positively correlated, there are exceptions. Some countries might have high GDP with lower immunization coverage or vice-versa. This visualization could be useful for policymakers to advocate for health investments as a means to enhance both public health and economic growth.
+
+```{r}
+ggplot(life, aes(x = Year, y = Total.expenditure
+                 , color = Status, group = Status)) +
+  geom_line(stat = "summary") +
+  labs(title = "Trend of Healthcare Expenditure Over Time",
+       x = "Year", y = "Average Healthcare Expenditure") +
+  theme_minimal()
+
+```
+
+```{r}
+ggplot(life, aes(x = Total.expenditure, y = Adult.Mortality)) +
+  geom_point(color = "blue", alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red", se = FALSE, size = 1) +
+  labs(title = "Health Expenditure vs Adult Mortality",
+       x = "Average Health Expenditure", y = "Adult Mortality") +
+  theme_minimal(base_size=10)
+```
+
+This problem statement aims to understand the impact of the economy on immunization coverage and how these impact the progress towards achieving Sustainable Development Goals (SDG) 3.3 and 3.8. SDG 3.3 aims to end epidemics and combat communicable diseases by improving prevention measures like immunization, while SDG 3.8 focuses on achieving universal health coverage, ensuring that everyone has access to essential healthcare services without financial hardship.
+
+The analysis examines the relationship between GDP, immunization coverage, and mortality rates, along with the differences in healthcare expenditure between developed and developing countries. It focuses on how these economic factors influence adult mortality rates and the overall effectiveness of immunization programs.
+
+From the data, several key patterns emerge. First, there is a clear positive relationship between GDP and immunization coverage. Countries with higher GDP levels generally show broader immunization coverage, due to better healthcare infrastructure and funding. However, there are exceptions where some high-GDP countries have lower immunization rates, and vice-versa, indicating that economic wealth alone does not guarantee universal vaccine access. These findings suggest that countries with stronger economies are better equipped to achieve high immunization coverage, but non-economic factors also play a role.
+
+Regarding the link between adult mortality and immunization coverage, an inverse relationship is evident. As immunization coverage increases, adult mortality tends to decrease. However, this relationship shows fluctuations when immunization coverage is between 60% and 80%, likely due to regional health crises, socio-economic factors, or vaccine-specific challenges. When coverage exceeds 90%, mortality rates stabilize, demonstrating the vital role of vaccines in reducing deaths from preventable diseases.
+
+When examining healthcare expenditure over time, developed countries consistently spend more on healthcare, with investments fluctuating between 6.5% and 7.5% of GDP. In contrast, developing countries have much lower healthcare expenditure, ranging between 5.5% and 6% of GDP, showing less dynamic growth in healthcare funding. Higher healthcare expenditure is often associated with lower mortality rates, as increased funding allows for better access to medical services, improved disease prevention, and overall health outcomes. Developing countries, with limited healthcare spending, may struggle to reduce mortality rates due to gaps in service coverage and resource availability. 
+
+The findings strongly relate to SDG 3.3, which focuses on ending epidemics and combating communicable diseases through measures such as immunization. The data underscores that higher immunization rates are linked to lower adult mortality, particularly for vaccine-preventable diseases like Hepatitis B, Diphtheria, and Polio. Therefore, achieving broad immunization coverage, especially in developing countries, is critical to meeting this goal.
+
+Similarly, the analysis ties into SDG 3.8, which seeks to achieve universal health coverage (UHC) by ensuring equitable access to essential healthcare services. The disparity in healthcare expenditure between developed and developing countries reveals a major barrier to UHC. Developed countries are better positioned to meet this target due to higher investments in healthcare services, while developing nations struggle with limited financial resources, which restricts their ability to provide widespread healthcare access and financial protection. The stability of healthcare investments is crucial for progress towards UHC, emphasizing the need for developing countries to increase healthcare funding and investment to achieve SDG 3.8.
+
+## PROBLEM STATEMENT 3:
+
+### Investigating the Impact of Poverty and Food Insecurity on Health Outcomes in Developing Countries
+
+We will first perform joining in order to proceed with this Visualization:
+
+```{r}
+developing_life_expectancy <- life %>%
+  filter(Status == "Developing")
+merged_data <- inner_join(developing_life_expectancy, poverty, by = "Country")
+```
+
+```{r}
+head(merged_data)
+```
+
+```{r}
+str(merged_data)
+```
+
+```{r}
+print("The number of rows in merged dataset after joining are")
+nrow(merged_data)
+print("The number of columns in merged dataset after joining are")
+ncol(merged_data)
+```
+
+```{r}
+
+selected_data <- merged_data %>%
+  select(Country, Year, MPI.Urban, under.five.deaths, thinness..1.19.years, thinness.5.9.years)
+
+colnames(selected_data)[c(5, 6)] <- c("Thinness_10_19", "Thinness_Under_5")
+
+plot_data <- selected_data %>%
+  pivot_longer(cols = c(Thinness_10_19, Thinness_Under_5), 
+               names_to = "Thinness_Age_Group", 
+               values_to = "Thinness_Value")
+ggplot(plot_data, aes(x = Thinness_Value, y = MPI.Urban)) +
+  geom_point(size = 2, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, size = 1.2) +
+  labs(title = "Comparison of Thinness and Multidimensional Poverty Index (Urban)", 
+       x = "Thinness (%)", 
+       y = "MPI (Urban)") +
+  theme_minimal() +
+  facet_wrap(~ Thinness_Age_Group, scales = "free_x")
+```
+
+This problem statement focuses on the critical issue of malnutrition, particularly thinness among children and adolescents, which is a key public health challenge in developing countries. It aligns with Sustainable Development Goal (SDG) 3, which aims to ensure good health and well-being for all, specifically addressing child health and malnutrition. The objective is to analyse the relationship between Multidimensional Poverty Index (MPI) and thinness among different age groups to understand the impact of poverty on malnutrition and health outcomes.
+
+The analysis highlights the correlation between high poverty levels (as indicated by MPI) and increased rates of thinness in both children under five and adolescents aged 10-19. This finding reflects the lack of access to adequate nutrition and healthcare services in areas with severe poverty, contributing to poor health outcomes such as stunted growth, weakened immune systems, and higher susceptibility to diseases.
+
+Malnutrition, especially in the form of thinness, is a leading cause of child mortality and adverse health outcomes, particularly in vulnerable populations. It is strongly associated with an increased risk of death from diseases such as diarrhea, acute respiratory infections, etc. By addressing the root causes of malnutrition, including poverty and food insecurity, we can make significant progress toward reducing child mortality rates and improving overall well-being. This aligns with SDG 3's targets, particularly Target 3.2, which focuses on ending preventable deaths of newborns and children under five, and Target 3.8, which promotes universal access to essential health services.
+
+The graph shows a comparative analysis of thinness rates for two age groups (under five and 10-19 years) against the Multidimensional Poverty Index (MPI) in urban areas.
+
+The scatter-plots reveal a positive correlation between higher MPI values and increased thinness, suggesting that poverty is a significant factor driving malnutrition in both age groups. As MPI increases, indicating greater poverty and deprivation, the percentage of thinness rises, demonstrating the detrimental effect of poverty on access to proper nutrition and healthcare.
+
+This relationship underscores the urgent need for poverty reduction strategies and nutritional interventions in developing countries. Improving access to health services, providing food security, and investing in early childhood nutrition can directly contribute to reducing malnutrition and enhancing the overall health and well-being of affected populations. Addressing these issues will play a pivotal role in achieving SDG 3's broader goal of ensuring healthy lives and promoting well-being for all.
+
+# COMPANY
+
+The parent company of well-known hospitals like Pantai and Gleneagles, IHH Healthcare can utilize the findings to tailor healthcare services aimed at improving public health in under-served regions.
+
+Efficient allocation of resources is of utmost priority to every company in the healthcare industry. This research helps IHH healthcare better understand the requirements of underdeveloped regions and they can make informed decisions in allocating resources when planning their structure. Alternatively they can use this data to show the importance of a healthier lifestyle in order to avoid early deaths.
+
+IHH healthcare is partners with many other clinics all over Malaysia and they can focus on providing vaccinations to the clinics in underdeveloped regions, alternatively identification of malnutrition can help avoid
+
+# CONCLUSION
+
+Overall, There is a positive correlation between the immunization coverage and average GDP, suggesting that better economic outcomes in a country could improve health outcomes through immunization. This suggests that to achieve SDG 3, the increase in international and local aid like providing vaccines for developing countries and regions should be increased as developing countries are far from achieving this goal as of now. Besides this, promotion of healthier lifestyles is important to achieve SDG 3 along with avoiding malnutrition so that mortality rates of children under 5 and aged 10-19 is reduced. Malnutrition, especially in the form of thinness, is a leading cause of child mortality and adverse health outcomes, particularly in vulnerable populations which can be avoided by campaigns related to proper nutrition and provision of food in necessary areas.
