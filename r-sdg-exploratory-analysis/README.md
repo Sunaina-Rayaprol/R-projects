@@ -1,0 +1,1 @@
+Group project analyzing open datasets related to UN Sustainable Development Goals. Cleaned and joined data, performed descriptive statistics, and created multiple visualizations to address problem statements. Provided recommendations for Malaysian businesses.
