@@ -1,0 +1,1 @@
+Data wrangling and analysis of BigBasket e-commerce dataset using R. Cleaned data, handled missing values/outliers, engineered new features, and analyzed product pricing/discount strategies for business insights.
