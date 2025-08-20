@@ -1,0 +1,292 @@
+---
+title: "ETW2001 A1"
+author: "Sunaina Rayaprol 3394091"
+format: 
+  html:
+    toc: True
+editor: visual
+execute: 
+  warning: False
+  message: False
+---
+
+# **SECTION A**
+
+E-commerce, or electronic commerce, refers to the process of buying and selling products through online platforms or the Internet. It utilizes various technologies, including mobile commerce, electronic funds transfer, supply chain management, Internet marketing, online transaction processing, electronic data interchange (EDI), inventory management systems, and automated data collection systems. The growth of e-commerce is largely fueled by advancements in the semiconductor industry, making it the largest segment within the electronics sector. BigBasket is the leading online grocery supermarket in India. Launched around 2011, the company has been continuously expanding its operations. Despite facing competition from new entrants like Blinkit, BigBasket has maintained its strong position in the market, thanks to its growing customer base and the ongoing shift toward online shopping.
+
+## Question 1
+
+List down 4 data manipulation strategies that can be applied to this dataset to produce clean data for analysis. Justify how the strategies will help in performing data analysis for business decision making. Include strategies such as
+
+### i) Handling missing values
+
+Answer: Missing values in the data set can be handled through several strategies, such as imputation or removal. Imputation methods like mean, median, or mode substitution fill in missing values with a central tendency measure, preserving the data set's size and structure. If a large proportion (e.g., over 80%) of values in a row or column is missing, it may be more practical to remove those rows or columns entirely to avoid introducing bias from excessive imputation. Addressing missing data leads to more accurate and representative results, which in turn help in developing precise models for business decision-making. Imputation maintains the data set's integrity, while removal of highly incomplete data prevents skewed analysis due to excessive artificial data.
+
+### ii) Data redundancy
+
+Answer: Data redundancy occurs when the same piece of data exists in multiple places, leading to potential inaccuracies in analysis. Getting rid of duplicate data ensures that each data point is unique and accurately represented thus improving the representativeness of the data set. Therefore, it is important to remove the duplicates of the data when cleaning it so that we are able to conduct effective data analysis and get an accurate measurement of what we need and helps avoid biased results. This step is essential in maintaining data integrity and ensuring that subsequent analysis reflects the true characteristics of the data set.
+
+### iii) Handling outliers in prices
+
+Answer: An outlier is a single data point that goes far outside the average value of a data set, which if not removed, severely deviate the central tendency from the majority of the data set. It also heavily effects statistical measures about the data set like the mean or median. Therefore, it is highly important to remove such outliers so we get a more representative and accurate data set to do further analysis on. Additionally, removing outliers ensures that the analysis of the clean data reflects the central trend of the data, avoiding overestimation or underestimation of key metrics, which will help with crucial decision making.
+
+### iv) Creating new column
+
+Answer: By creating new columns, we can derive more insights that are not immediately apparent from the raw data. For example, using the existing columns: "market_price" and "sale_price", we are able to calculate the 'discount' which wasn't part of the original data set, however will help us with further data analysis. New columns provide deeper insights and enhance the analytical power of the data set by highlighting relationships and patterns.
+
+## Question 2
+
+Perform data manipulation using the 4 strategies listed in (1) by following the order from (i) to (iv). Use the cleaned data set produced in (i) for (ii), from (ii) to (iii) and from (iii) to (iv). Show the R codes and justify the outputs. Print the header if the output has more than 10 rows. **(4 marks)**
+
+First Load the data set and relevant libraries.
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+big_basket <- read.csv("bigbasket.csv")
+```
+
+1.  Handling missing values
+
+```{r}
+colSums(is.na(big_basket))
+```
+
+From the output above, we can see that the `rating` variable has 8626 missing values.
+
+```{r}
+hist(big_basket$rating,main = "Histogram of Ratings") 
+```
+
+By plotting the data for `rating` onto a histogram, we can see that the data is skewed to the left. This tells us that it would be better to impute the data using that median because the median is not influenced by outliers, making it a better choice for skewed data. Additionally, if the data is not symmetrically distributed, the median is a better measure of central tendency.
+
+```{r}
+big_basket$rating[is.na(big_basket$rating)] <- median(big_basket$rating, na.rm = TRUE)
+colSums(is.na(big_basket))
+```
+
+2.  Data redundancy
+
+```{r}
+big_basket <- big_basket %>%
+  select(-index)
+
+big_basket_no_copy <- big_basket %>% 
+  distinct() 
+```
+
+2.  Handling outliers
+
+```{r}
+str(big_basket_no_copy)
+```
+
+Removing outliers in `sale_price`
+
+```{r}
+boxplot(big_basket_no_copy$sale_price, horizontal = TRUE)
+title(main="big basket sales",
+ xlab="sales price")
+```
+
+The box plot above shows the distribution of sales price and the presence of outliers.
+
+```{r}
+#sales
+IQR_sales <- IQR(big_basket_no_copy$sale_price, na.rm = TRUE)
+
+lower_bound_sales <- quantile(big_basket_no_copy$sale_price, 0.25, na.rm = TRUE) - 1.5 * IQR_sales
+
+upper_bound_sales <- quantile(big_basket_no_copy$sale_price, 0.75, na.rm = TRUE) + 1.5 * IQR_sales
+
+big_basket_no_sales_outliers <- big_basket_no_copy[
+  big_basket_no_copy$sale_price >= lower_bound_sales & big_basket_no_copy$sale_price <= upper_bound_sales, ]
+
+boxplot(big_basket_no_sales_outliers$sale_price, horizontal = TRUE)
+title(main="big basket no outliers in sales",
+ xlab="sales price")
+```
+
+Now we see that the data is a lot cleaner and simpler without the outliers.
+
+Moving on, we now remove outliers in `market_price`:
+
+```{r}
+boxplot(big_basket_no_copy$market_price, horizontal = TRUE)
+title(main="big basket market",
+ xlab="market price")
+```
+
+```{r}
+#market
+IQR_market <- IQR(big_basket_no_sales_outliers$market_price, na.rm = TRUE)
+
+lower_bound_market <- quantile(big_basket_no_sales_outliers$market_price, 0.25, na.rm = TRUE) - 1.5 * IQR_market
+
+upper_bound_market <- quantile(big_basket_no_sales_outliers$market_price, 0.75, na.rm = TRUE) + 1.5 * IQR_market
+
+big_basket_no_sales_market_outliers <- big_basket_no_sales_outliers[
+  big_basket_no_sales_outliers$market_price >= lower_bound_market & big_basket_no_sales_outliers$market_price <= upper_bound_market, ]
+
+
+boxplot(big_basket_no_sales_market_outliers$market_price, horizontal = TRUE)
+title(main="big basket no outliers in market price",
+ xlab="market price")
+```
+
+2.  Creating new column
+
+```{r}
+#create a column for discount(?) 
+big_basket_no_sales_market_outliers$discount_rate <- (big_basket_no_sales_market_outliers$market_price - big_basket_no_sales_market_outliers$sale_price) / big_basket_no_sales_market_outliers$market_price * 100
+
+big_basket_no_sales_market_outliers$price_profit <- big_basket_no_sales_market_outliers$market_price - big_basket_no_sales_market_outliers$sale_price
+
+clean_big_basket <- big_basket_no_sales_market_outliers 
+```
+
+After data cleaning, there are 21 variables and 24,184 observations
+
+## Question 3
+
+Use the cleaned data set produced at the end of question 2 to answer this question. Assume that you have been assigned as a Business Analyst in BigBasket supermarket. Your first project is to perform a price variance analysis using the provided data set. You have to identify the top 100 products with the highest discount rate. Which category does the majority of the top 100 products fall under? Why do you think this category needs the highest discount rate compared to others? **(5 marks)**
+
+```{r}
+#finding the top 100 products with the highest discount rate
+arranged_products <- clean_big_basket %>%
+  arrange(desc(discount_rate))
+
+discount_top_100 <- head(arranged_products, 100)
+
+head(discount_top_100)
+
+```
+
+```{r}
+#finding the category that majority of the top 100 products fall under
+categories_counted <- discount_top_100 %>%
+  count(category) %>%
+  arrange(desc(n))
+
+head(categories_counted)
+```
+
+Explanation:
+
+From the analysis, It is evident that the category with the most discount is the "Kitchen, Garden & Pets". As compared to the other categories, many of the products under this category can be sold by other retailers, and so the higher discount rates could be to attract customers despite the high competition and make Big Basket seem as a valuable option for customers.
+
+## Question 4
+
+As a business analyst, which product will you correlate with the category you found in (3) to increase the sales of the supermarket? Identify that and Explain why. **(4 marks)**
+
+```{r}
+Kitchen_arranged <- discount_top_100 %>%
+  filter(category == "Kitchen, Garden & Pets") %>%
+  arrange(desc(price_profit)) %>%
+  select(product, price_profit)
+head(Kitchen_arranged)
+```
+
+Looking at the top 5 products with the highest price profit will help us decide which product to focus on to increase sales. The product with the highest profit is 'Steel Storage Deep Dabba'. Therefore, increasing how much we sell of this product will help increase the sales of the supermarket.
+
+## Question 5
+
+Use the data set produced in question 2. Write a conditional statement using the “rating” variable to classify the products into three categories: i) high, ii) average, and iii) poor and store the information in a new column in the same data set. **(3 marks)**
+
+```{r}
+clean_big_basket$rating_category <- ifelse(clean_big_basket$rating >= 4, "high",
+                                           ifelse(clean_big_basket$rating >= 3 & clean_big_basket$rating < 4, "average", 
+                                                  "poor"))
+head(clean_big_basket)
+```
+
+# Section B
+
+## Question 1
+
+List down three business strategies used by ZARA to be the number one fashion store worldwide. **(3 marks)**
+
+1)ZARA’s highly effective fast fashion supply chain allows the company to launch new collections every two weeks. Whereas it's competitors release a new collection every 2 months. By shortening the product lifecycle, ZARA can meet the high demand for trendy and current fashion, which kept the customers excited and anticipating for the next collection as well as increase their footfall in stores.
+
+2\) The 'Just-in-time' approach employed by ZARA involves producing and delivering products based on current demand rather than forecasts. As a result, ZARA avoids overstocking and spending money on storage. Additionally, this creates a sense of urgency among customers, motivating them to purchase items quickly to avoid missing out.
+
+3\) ZARA offers medium-quality fashion clothing at affordable prices, targeting young consumers who seek trendy and stylish outfits. By providing a wide variety of fashionable clothes at reasonable prices, combined with the frequent introduction of new designs, ZARA attracts a large customer base.
+
+## Question 2
+
+Assume that you are hired as a business analyst in ZARA to analyze their E-Commerce data. Your first task is to create a data frame and perform basic analysis using conditional statements. **(7 marks)**
+
+Follow the instructions below:
+
+a)     Go to this website <https://www.zara.com/my/>
+
+b)    Create a data frame with 5 columns, including productID (create integers from 1 – 20 by yourself), product name, category, subcategory, and price using the information from the website. You must create 20 observations.
+
+```{r}
+zara_products <- data.frame(
+  productID = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20),
+  product_name = c('CROPPED SATIN BLAZER',
+                   'GODET MINI DRESS ZW COLLECTION',
+                   'POPLIN SHIRT WITH POCKET',
+                   'SATIN MIDI SKIRT',
+                   'COTTON - LINEN TROUSERS',
+                   'HOODIE'
+                   ,'COMFORT OVERSHIRT',
+                   'LINEN - COTTON BERMUDA SHORTS',
+                   'VISCOSE BLEND KNIT POLO SHIRT',
+                   'BASIC PLAIN KNIT SWEATER',
+                   'TAILORED WAISTCOAT',
+                   'TRF DENIM BALLOON SKIRT',
+                   'SHORT SEQUIN DRESS WITH RUFFLES',
+                   'SEQUINNED CAMISOLE TOP',
+                   'ZW COLLECTION STRAIGHT MID-WAIST STUDDED JEANS',
+                   'TEXTURED KNIT VEST',
+                   'COLOURED DENIM BERMUDA SHORTS',
+                   'ROPE-LACE SKATE TRAINERS',
+                   'OVERSIZED ZIPPED SWEATSHIRT',
+                   'RING DETAIL SHOULDER BAG'),
+  category = c('Women','Women','Women','Women','Men','Men','Men','Men','Men','Women','Women','Women','Women','Women','Women','Men','Men','Men','Women','Women'),
+  subcategory = c('Blazers','Dresses','Shirts','Skirts','Trousers','Hoodies','Overshirts','Linen','Polo Shirts','Knitwear','Waistcoats','Skirts','Dresses','Tops','Jeans','Gilets','Shorts','Shoes','Sweatshirt','Bags'),
+  price = c(269.00,269.00,169.00,189.00,219.00,199.00,249.00,189.00,189.00,169.00,189.00,189.00,219.00,169.00,449.00,189.00,169.00,369.00,189.00,189.00)
+)
+
+```
+
+c)     Write a conditional statement using the price of the products in your data frame as an independent variable and subcategory as your target variable. Identify the subcategories at the highest and lowest prices using the conditional statement.
+
+```{r}
+highest_price <- max(zara_products$price)
+lowest_price <- min(zara_products$price)
+
+highest_subcategory <- zara_products$subcategory[zara_products$price == highest_price]
+lowest_subcategory <- zara_products$subcategory[zara_products$price == lowest_price]
+
+print("category with the highest prices : ")
+highest_subcategory
+print("category with the lowest prices : ")
+lowest_subcategory
+```
+
+d)    Write a conditional statement to identify the products in Q1 and Q3 of the price range and explain the output.
+
+```{r}
+Q1 <- quantile(zara_products$price, 0.25)
+
+Q3 <- quantile(zara_products$price, 0.75)
+
+Q1_products <- zara_products %>% filter(price <= Q1)
+
+Q3_products <- zara_products %>% filter(price >= Q3)
+
+print(paste("Products in the first quartile (Q1):"))
+Q1_products
+
+print(paste("Products in the third quartile (Q3):"))
+Q3_products
+```
+
+The products in the Q1 or the lower quartile are the lower 25% of the products in terms of price. In other words, it is the least expensive products in the data frame.
+
+The products in the Q3 or the upper bound are the upper 25% of the products in terms of price. Also known as the most expensive products in the data frame.
