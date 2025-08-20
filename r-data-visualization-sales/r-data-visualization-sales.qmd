@@ -1,0 +1,222 @@
+---
+title: "ETW2001 A2"
+author: "Sunaina Rayaprol 3394091"
+format: 
+  html:
+    toc: True
+editor: visual
+execute: 
+  warning: False
+  message: False
+---
+
+For this assessment, use R's join functions to merge data sets and the ggplot2 package to create visualizations. Apply any appropriate data manipulation techniques and R functions to complete your analysis. Note that the use of R join functions is mandatory for all questions.\
+
+Load data set
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+
+profit <- read.csv("profit_data.csv")
+product <- read.csv("product_data.csv")
+location <- read.csv("location_data.csv")
+
+summary(profit)
+summary(product)
+summary(location)
+```
+
+# Question 1
+
+**Analysis of Product Types by City in the US (10 Marks)**
+
+Select only the products that have purchase location details. Analyze the distribution of product types across different cities in the US. Create a suitable visualization to support your analysis and provide an interpretation of the results.
+
+First we will perform `inner_join()` to the data sets `product` and `location` by `Order.ID`
+
+```{r}
+products_data <- inner_join(product, location, by = "Order.ID")
+```
+
+Now we can filter the data to have only products that have location details.
+
+```{r}
+filtered_location_details <- products_data %>%
+  filter(!is.na(Purchase.Address))
+```
+
+To properly analyse the distribution of product types across cities in the US, we can categorize the products to their common types. We can see that there are 19 unique types of products which can all be put under a certain common type.
+
+```{r}
+unique_products <- unique(product$Product)
+unique_products
+```
+
+```{r}
+mutated_product_category <- filtered_location_details %>%
+  mutate(Product_Category = case_when(
+    Product %in% c("AA Batteries (4-pack)", "AAA Batteries (4-pack)") ~ "Batteries",
+    Product %in% c("27in 4K Gaming Monitor", "27in FHD Monitor", "34in Ultrawide Monitor", "20in Monitor") ~ "Monitors",
+    Product %in% c("Lightning Charging Cable", "USB-C Charging Cable") ~ "Cables",
+    Product %in% c("Macbook Pro Laptop", "ThinkPad Laptop") ~ "Laptops",
+    Product %in% c("iPhone", "Google Phone", "Vareebadd Phone") ~ "Phones",
+    Product %in% c("Wired Headphones", "Bose SoundSport Headphones", "Apple Airpods Headphones") ~ "Headphones",
+    Product %in% c("LG Dryer", "LG Washing Machine") ~ "Dryer and washer",
+    Product %in% c("Flatscreen TV") ~ "Television",
+    TRUE ~ Product  # Keep the original name if not in these categories
+  ))
+```
+
+Now we can divide the `Purchase.Address` to only include the cities
+
+```{r}
+city_product_distribution <- mutated_product_category %>%
+  separate(Purchase.Address, into = c("Street", "City", "State_Zip"), sep = ",", extra = "merge") %>%
+  group_by(City, Product_Category) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+```
+
+```{r}
+ggplot(city_product_distribution, aes(x = City, y = count, fill = Product_Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ Product_Category, scales = "free_y") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Distribution of Product Categories by City", x = "City", y = "Number of Products Sold")
+
+```
+
+The above bar plot shows us the number of products sold in US cities, categorized by each product type.
+
+Certain cities consistently show high sales across multiple product categories. New York City, Dallas, and San Francisco emerge as top-performing cities, indicating higher demand for electronics and related products. On the other hand, Portland, Austin, and Boston consistently show lower sales, suggesting smaller markets for these categories. Factors such as population density and technology hubs may influence these patterns, with larger cities having more purchasing power and cities like San Francisco and Dallas, known for their tech industries, showing higher demand for products like laptops and monitors. Additionally, consumer preferences in certain areas, such as the higher sales of phones in Portland and San Francisco, highlight regional variations.
+
+In conclusion, the distribution of product categories across US cities highlights clear variations in consumer demand. Larger, tech-centric cities such as New York City, Dallas, and San Francisco dominate sales across most categories, while smaller cities like Portland, Austin, and Seattle exhibit lower demand.
+
+# Question 2
+
+**Analysis of Product Types for Higher Quantity Orders and Survey on Electronics Usage (10 Marks)**
+
+Filter the data set to include only products where the quantity ordered is greater than 1. Analyze the types of products in this subset using an appropriate visualization and interpret the results. Additionally, conduct a survey on the usage of electronics in the US using any open-source platform. Discuss potential factors contributing to the higher quantities of these products being purchased and justify your findings based on the survey outcomes.
+
+Filter the dataset to only include products with more than one quantity ordered
+
+```{r}
+profit_product <- inner_join(profit, product, by = "Product_ean")
+
+more_than_1_ordered <- profit_product %>%
+  filter(Quantity.Ordered > 1)
+
+```
+
+Then we can categorize the products into common categories and plot a bar plot.
+
+```{r}
+category_products <- more_than_1_ordered %>%
+  mutate(Product_Category = case_when(
+    Product %in% c("AA Batteries (4-pack)", "AAA Batteries (4-pack)") ~ "Batteries",
+    Product %in% c("27in 4K Gaming Monitor", "27in FHD Monitor", "34in Ultrawide Monitor", "20in Monitor") ~ "Monitors",
+    Product %in% c("Lightning Charging Cable", "USB-C Charging Cable") ~ "Cables",
+    Product %in% c("Macbook Pro Laptop", "ThinkPad Laptop") ~ "Laptops",
+    Product %in% c("iPhone", "Google Phone", "Vareebadd Phone") ~ "Phones",
+    Product %in% c("Wired Headphones", "Bose SoundSport Headphones", "Apple Airpods Headphones") ~ "Headphones",
+    Product %in% c("LG Dryer", "LG Washing Machine") ~ "Dryer and washer",
+    Product %in% c("Flatscreen TV") ~ "Television",
+    TRUE ~ Product  # Keep the original name if not in these categories
+  ))
+```
+
+```{r}
+ggplot(category_products, aes(x = Product_Category, fill = Product_Category)) +
+  geom_bar()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+The bar plot illustrates the product categories that have been purchased in quantities greater than one, with the top three being headphones, cables, and batteries, while the bottom categories are dryers and washers, television and laptops. The followin discussion explores the factors driving high demand for the top categories and lower demand for the bottom ones, supported by insights from a recent market survey.
+
+**Headphones**\
+According to market data from *Speakergy*, the US headphone market has experienced nearly a 5% annual increase in growth, with the total market size nearing \$500 million in 2022. This demonstrates that headphones are increasingly essential in modern life. A significant driving factor for this demand was the rise in homeschooling and virtual classes during the COVID-19 pandemic, when audio devices became crucial for remote work and online learning. The growing trend of smart wireless headphones, which offer enhanced functionality, also contributes to higher sales and larger order quantities. These factors likely explain why headphones dominate the list of higher quantity orders.
+
+<https://speakergy.com/headphones-sales-data-full-statistics-report/#Sales_of_Headphones_%E2%80%93_American_and_Global_Markets_%E2%80%93_2023>
+
+Batteries
+
+Similarly, the high demand for batteries can be connected to the growing reliance on electronics, from smart devices to portable gadgets. Batteries are used for a wide range of electronic products, including wireless headphones which can explain why there is a high order quantity for both batteries and headphones. As more consumers adopt wireless devices, the need for reliable and portable power sources increases, making batteries a common household staple.
+
+Cables
+
+As mentioned above, with the proliferation of personal electronics, such as smartphones, tablets, laptops, there is a continuous need for various type of cables - charging, USB connectors and HDMI cables- all contributing to high order quantities. Moreover, the gradual shift toward smart home setups and interconnected devices requires a robust supply of connection accessories like cables.
+
+Dryers and Washers, Televisions and Laptops
+
+Unlike the other categories, dryers and washers, television and laptops represent the less frequent purchases due their high cost and durability. Customers don't tend to replace major appliances as often as household items like batteries, resulting in lower order quantities for these categories. While these categories remain essential for many households, their long life spans and relatively high cost make them occasional purchases, compared to smaller electronics like headphones or cables that require frequent replacements or upgrades.
+
+# Question 3
+
+**Turnover Analysis of Different Product Types in 2019 (10 Marks)**
+
+Create a new data frame containing the columns: Order Date, Product EAN, Product Name, and Turnover. Analyze the turnover of different product types from January to December 2019 using an appropriate visualization. Interpret the results of your analysis.
+
+To help with this question, we will be using the library `lubridate` to help us separate `Order.ID` into year and month
+
+```{r}
+library(lubridate)
+```
+
+First we perform inner_join on the data sets `profit` and `product` by `Product_ean` and select the required variables.
+
+```{r}
+combined_data <- profit %>%
+  inner_join(product, by = "Product_ean") %>%
+  select(Order.Date, Product_ean, Product, turnover)
+```
+
+Then we categorize the products into their common types
+
+```{r}
+category_products <- combined_data %>%
+  mutate(Product_Category = case_when(
+    Product %in% c("AA Batteries (4-pack)", "AAA Batteries (4-pack)") ~ "Batteries",
+    Product %in% c("27in 4K Gaming Monitor", "27in FHD Monitor", "34in Ultrawide Monitor", "20in Monitor") ~ "Monitors",
+    Product %in% c("Lightning Charging Cable", "USB-C Charging Cable") ~ "Cables",
+    Product %in% c("Macbook Pro Laptop", "ThinkPad Laptop") ~ "Laptops",
+    Product %in% c("iPhone", "Google Phone", "Vareebadd Phone") ~ "Phones",
+    Product %in% c("Wired Headphones", "Bose SoundSport Headphones", "Apple Airpods Headphones") ~ "Headphones",
+    Product %in% c("LG Dryer", "LG Washing Machine") ~ "Dryer and washer",
+    TRUE ~ Product  # Keep the original name if not in these categories
+  ))
+```
+
+Then we use `lubridate` function to filter the observations to only include data from 2019, then calculate the total turnover
+
+```{r}
+Products_2019_turnover <- category_products %>%
+  filter(year(Order.Date) == 19)%>%
+  mutate(Month = month(Order.Date, label = TRUE))%>%
+  group_by(Month, Product_Category) %>%
+  summarise(Total_Turnover = sum(turnover)) %>%
+  arrange(Month)
+```
+
+Finally, we can plot the data onto a line plot to interpret the results.
+
+```{r}
+ggplot(Products_2019_turnover, 
+       aes(x = Month, 
+           y = Total_Turnover, 
+           color = Product_Category, 
+           group = Product_Category)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Monthly Turnover Trends by Product Category in 2019", 
+       x = "Month", 
+       y = "Total Turnover") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
+
+December and November are the highest turnover months as we can observe a substantial turnover across almost all product categories, likely due to holiday shopping and year-end sales. This is supported by the fact that there is an increase in turnover for Monitors and Phones especially, which are cost heavy electronics, perhaps influenced by gift-giving for Christmas. Cables show a notable increase in turnover during these months, possibly due to consumers purchasing accessories alongside larger electronics.
+
+May and September are secondary peak months; they show notable increases in turnover, possibly due to seasonal promotions or back to school shopping. Categories that are commonly required during back to school time include Phones and Laptops aligning with the needs of students preparing for the academic year as well as Headphones for students to use, which all have high turnover rates during this time.
